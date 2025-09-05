@@ -1,0 +1,884 @@
+{
+  "license": "MIT",
+  "pragmaVersion": "^0.8.0",
+  "contractType": "Contract",
+  "name": "WyomingTrustTokenization",
+  "description": "Wyoming Statutory Trust for Tokenized Single Family Residential Real Property - 1000 Year Perpetual Trust",
+  "imports": [
+    "@openzeppelin/contracts/token/ERC721/ERC721.sol",
+    "@openzeppelin/contracts/access/Ownable.sol",
+    "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+    "@openzeppelin/contracts/utils/math/SafeMath.sol",
+    "@openzeppelin/contracts/utils/Strings.sol",
+    "@openzeppelin/contracts/security/Pausable.sol"
+  ],
+  "inherits": ["ERC721", "Ownable", "ReentrancyGuard", "Pausable"],
+  "state": [
+    {
+      "name": "trustName",
+      "type": "string",
+      "visibility": "public",
+      "description": "Name of the Wyoming Statutory Trust"
+    },
+    {
+      "name": "trustDuration",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Trust duration in years (1000 years)"
+    },
+    {
+      "name": "trustStartDate",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Trust start date timestamp"
+    },
+    {
+      "name": "settlor",
+      "type": "address",
+      "visibility": "public",
+      "description": "Address of the SETTLOR (Quantum Street, Inc.)"
+    },
+    {
+      "name": "trustee",
+      "type": "address",
+      "visibility": "public",
+      "description": "Address of the TRUSTEE"
+    },
+    {
+      "name": "trustProtector",
+      "type": "address",
+      "visibility": "public",
+      "description": "Address of the TRUST PROTECTOR"
+    },
+    {
+      "name": "qualifiedCustodian",
+      "type": "address",
+      "visibility": "public",
+      "description": "Address of the Wyoming qualified custodian"
+    },
+    {
+      "name": "propertyCount",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Total number of properties in the trust"
+    },
+    {
+      "name": "totalTokensIssued",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Total tokens issued across all properties"
+    },
+    {
+      "name": "reserveFundBalance",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Balance of the trust reserve fund"
+    },
+    {
+      "name": "annualDistributionRate",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Percentage of net profits distributed annually (90%)"
+    },
+    {
+      "name": "reserveFundRate",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Percentage allocated to reserve fund (10%)"
+    },
+    {
+      "name": "minimumPropertyValue",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Minimum property value ($25,000,000)"
+    },
+    {
+      "name": "visitationThreshold",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Token ownership threshold for visitation rights (30%)"
+    },
+    {
+      "name": "lastDistributionDate",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Timestamp of last annual distribution"
+    },
+    {
+      "name": "isTrustActive",
+      "type": "bool",
+      "visibility": "public",
+      "description": "Whether the trust is active"
+    }
+  ],
+  "structs": [
+    {
+      "name": "PropertyInfo",
+      "description": "Information about a trust property",
+      "fields": [
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "description": "Unique property identifier"
+        },
+        {
+          "name": "propertyAddress",
+          "type": "string",
+          "description": "Physical address of the property"
+        },
+        {
+          "name": "propertyValue",
+          "type": "uint256",
+          "description": "Fair market value of the property"
+        },
+        {
+          "name": "totalSquareFootage",
+          "type": "uint256",
+          "description": "Total square footage (property + structures)"
+        },
+        {
+          "name": "tokenSupply",
+          "type": "uint256",
+          "description": "Total tokens for this property"
+        },
+        {
+          "name": "tokensIssued",
+          "type": "uint256",
+          "description": "Tokens issued for this property"
+        },
+        {
+          "name": "annualIncome",
+          "type": "uint256",
+          "description": "Annual rental income"
+        },
+        {
+          "name": "annualExpenses",
+          "type": "uint256",
+          "description": "Annual expenses (taxes, insurance, maintenance)"
+        },
+        {
+          "name": "netIncome",
+          "type": "uint256",
+          "description": "Net income after expenses"
+        },
+        {
+          "name": "isActive",
+          "type": "bool",
+          "description": "Whether property is active in trust"
+        },
+        {
+          "name": "titleDocumentHash",
+          "type": "bytes32",
+          "description": "IPFS hash of title documents"
+        },
+        {
+          "name": "appraisalDocumentHash",
+          "type": "bytes32",
+          "description": "IPFS hash of appraisal documents"
+        }
+      ]
+    },
+    {
+      "name": "TokenInfo",
+      "description": "Information about a specific token",
+      "fields": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "description": "Unique token identifier"
+        },
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "description": "Property this token represents"
+        },
+        {
+          "name": "squareFootage",
+          "type": "uint256",
+          "description": "Square footage represented by this token"
+        },
+        {
+          "name": "fractionalOwnership",
+          "type": "uint256",
+          "description": "Fractional ownership percentage"
+        },
+        {
+          "name": "isNotarized",
+          "type": "bool",
+          "description": "Whether token transfer was notarized"
+        },
+        {
+          "name": "notarizationHash",
+          "type": "bytes32",
+          "description": "Hash of notarization document"
+        },
+        {
+          "name": "creationDate",
+          "type": "uint256",
+          "description": "Token creation timestamp"
+        }
+      ]
+    },
+    {
+      "name": "DistributionRecord",
+      "description": "Record of annual distributions",
+      "fields": [
+        {
+          "name": "distributionId",
+          "type": "uint256",
+          "description": "Unique distribution identifier"
+        },
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "description": "Property for this distribution"
+        },
+        {
+          "name": "distributionDate",
+          "type": "uint256",
+          "description": "Distribution timestamp"
+        },
+        {
+          "name": "totalDistributed",
+          "type": "uint256",
+          "description": "Total amount distributed"
+        },
+        {
+          "name": "perTokenAmount",
+          "type": "uint256",
+          "description": "Amount per token"
+        },
+        {
+          "name": "reserveAllocation",
+          "type": "uint256",
+          "description": "Amount allocated to reserve fund"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "TrustEstablished",
+      "params": [
+        {
+          "name": "trustName",
+          "type": "string",
+          "indexed": true
+        },
+        {
+          "name": "settlor",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "trustee",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "duration",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when trust is established"
+    },
+    {
+      "name": "PropertyAdded",
+      "params": [
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "indexed": true
+        },
+        {
+          "name": "propertyAddress",
+          "type": "string",
+          "indexed": false
+        },
+        {
+          "name": "propertyValue",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "tokenSupply",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when property is added to trust"
+    },
+    {
+      "name": "TokensMinted",
+      "params": [
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "indexed": true
+        },
+        {
+          "name": "tokenIds",
+          "type": "uint256[]",
+          "indexed": false
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "description": "Emitted when tokens are minted"
+    },
+    {
+      "name": "TokenTransferred",
+      "params": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true
+        },
+        {
+          "name": "from",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "notarizationHash",
+          "type": "bytes32",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when token is transferred with notarization"
+    },
+    {
+      "name": "AnnualDistribution",
+      "params": [
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "indexed": true
+        },
+        {
+          "name": "distributionDate",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "totalDistributed",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "perTokenAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "reserveAllocation",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when annual distribution is made"
+    },
+    {
+      "name": "ReserveFundUpdated",
+      "params": [
+        {
+          "name": "newBalance",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "allocation",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when reserve fund is updated"
+    },
+    {
+      "name": "PropertyIncomeUpdated",
+      "params": [
+        {
+          "name": "propertyId",
+          "type": "uint256",
+          "indexed": true
+        },
+        {
+          "name": "annualIncome",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "annualExpenses",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "netIncome",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when property income is updated"
+    },
+    {
+      "name": "TrustProtectorAppointed",
+      "params": [
+        {
+          "name": "newProtector",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "previousProtector",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "description": "Emitted when trust protector is appointed"
+    },
+    {
+      "name": "TrusteeSuccession",
+      "params": [
+        {
+          "name": "newTrustee",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "previousTrustee",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "description": "Emitted when trustee succession occurs"
+    }
+  ],
+  "constructor": {
+    "description": "Initialize the Wyoming Trust Tokenization contract",
+    "params": [
+      {
+        "name": "_trustName",
+        "type": "string"
+      },
+      {
+        "name": "_settlor",
+        "type": "address"
+      },
+      {
+        "name": "_trustee",
+        "type": "address"
+      },
+      {
+        "name": "_trustProtector",
+        "type": "address"
+      },
+      {
+        "name": "_qualifiedCustodian",
+        "type": "address"
+      }
+    ],
+    "body": [
+      "ERC721(\"Wyoming Trust Property Tokens\", \"WTPT\")",
+      "trustName = _trustName;",
+      "settlor = _settlor;",
+      "trustee = _trustee;",
+      "trustProtector = _trustProtector;",
+      "qualifiedCustodian = _qualifiedCustodian;",
+      "trustDuration = 1000;",
+      "trustStartDate = block.timestamp;",
+      "annualDistributionRate = 90;",
+      "reserveFundRate = 10;",
+      "minimumPropertyValue = 25000000 * 10**18;",
+      "visitationThreshold = 30;",
+      "isTrustActive = true;",
+      "emit TrustEstablished(_trustName, _settlor, _trustee, trustDuration);"
+    ]
+  },
+  "functions": [
+    {
+      "name": "addProperty",
+      "visibility": "public",
+      "description": "Add a new property to the trust",
+      "params": [
+        {
+          "name": "_propertyAddress",
+          "type": "string",
+          "description": "Physical address of the property"
+        },
+        {
+          "name": "_propertyValue",
+          "type": "uint256",
+          "description": "Fair market value of the property"
+        },
+        {
+          "name": "_totalSquareFootage",
+          "type": "uint256",
+          "description": "Total square footage (property + structures)"
+        },
+        {
+          "name": "_annualIncome",
+          "type": "uint256",
+          "description": "Annual rental income"
+        },
+        {
+          "name": "_titleDocumentHash",
+          "type": "bytes32",
+          "description": "IPFS hash of title documents"
+        },
+        {
+          "name": "_appraisalDocumentHash",
+          "type": "bytes32",
+          "description": "IPFS hash of appraisal documents"
+        }
+      ],
+      "modifiers": ["onlyOwner", "nonReentrant"],
+      "body": [
+        "require(_propertyValue >= minimumPropertyValue, \"Property value below minimum\");",
+        "require(_totalSquareFootage > 0, \"Invalid square footage\");",
+        "require(_annualIncome > 0, \"Invalid annual income\");",
+        "propertyCount++;",
+        "uint256 propertyId = propertyCount;",
+        "properties[propertyId] = PropertyInfo({",
+        "    propertyId: propertyId,",
+        "    propertyAddress: _propertyAddress,",
+        "    propertyValue: _propertyValue,",
+        "    totalSquareFootage: _totalSquareFootage,",
+        "    tokenSupply: _totalSquareFootage,",
+        "    tokensIssued: 0,",
+        "    annualIncome: _annualIncome,",
+        "    annualExpenses: 0,",
+        "    netIncome: _annualIncome,",
+        "    isActive: true,",
+        "    titleDocumentHash: _titleDocumentHash,",
+        "    appraisalDocumentHash: _appraisalDocumentHash",
+        "});",
+        "emit PropertyAdded(propertyId, _propertyAddress, _propertyValue, _totalSquareFootage);"
+      ]
+    },
+    {
+      "name": "mintTokens",
+      "visibility": "public",
+      "description": "Mint tokens for a property",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID to mint tokens for"
+        },
+        {
+          "name": "_recipient",
+          "type": "address",
+          "description": "Address to receive the tokens"
+        },
+        {
+          "name": "_quantity",
+          "type": "uint256",
+          "description": "Number of tokens to mint"
+        }
+      ],
+      "modifiers": ["onlyOwner", "nonReentrant"],
+      "body": [
+        "require(properties[_propertyId].isActive, \"Property not active\");",
+        "require(_quantity > 0, \"Invalid quantity\");",
+        "require(properties[_propertyId].tokensIssued + _quantity <= properties[_propertyId].tokenSupply, \"Exceeds token supply\");",
+        "uint256[] memory tokenIds = new uint256[](_quantity);",
+        "for (uint256 i = 0; i < _quantity; i++) {",
+        "    uint256 tokenId = totalTokensIssued + i + 1;",
+        "    _mint(_recipient, tokenId);",
+        "    tokens[tokenId] = TokenInfo({",
+        "        tokenId: tokenId,",
+        "        propertyId: _propertyId,",
+        "        squareFootage: 1,",
+        "        fractionalOwnership: (1 * 100) / properties[_propertyId].tokenSupply,",
+        "        isNotarized: false,",
+        "        notarizationHash: bytes32(0),",
+        "        creationDate: block.timestamp",
+        "    });",
+        "    tokenIds[i] = tokenId;",
+        "}",
+        "properties[_propertyId].tokensIssued += _quantity;",
+        "totalTokensIssued += _quantity;",
+        "emit TokensMinted(_propertyId, tokenIds, _recipient);"
+      ]
+    },
+    {
+      "name": "transferTokenWithNotarization",
+      "visibility": "public",
+      "description": "Transfer token with notarization requirement",
+      "params": [
+        {
+          "name": "_tokenId",
+          "type": "uint256",
+          "description": "Token ID to transfer"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "description": "Recipient address"
+        },
+        {
+          "name": "_notarizationHash",
+          "type": "bytes32",
+          "description": "Hash of notarization document"
+        }
+      ],
+      "modifiers": ["nonReentrant"],
+      "body": [
+        "require(_exists(_tokenId), \"Token does not exist\");",
+        "require(ownerOf(_tokenId) == msg.sender, \"Not token owner\");",
+        "require(_to != address(0), \"Invalid recipient\");",
+        "require(_notarizationHash != bytes32(0), \"Notarization required\");",
+        "address from = ownerOf(_tokenId);",
+        "tokens[_tokenId].isNotarized = true;",
+        "tokens[_tokenId].notarizationHash = _notarizationHash;",
+        "_transfer(from, _to, _tokenId);",
+        "emit TokenTransferred(_tokenId, from, _to, _notarizationHash);"
+      ]
+    },
+    {
+      "name": "updatePropertyIncome",
+      "visibility": "public",
+      "description": "Update property income and expenses",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID to update"
+        },
+        {
+          "name": "_annualIncome",
+          "type": "uint256",
+          "description": "New annual income"
+        },
+        {
+          "name": "_annualExpenses",
+          "type": "uint256",
+          "description": "New annual expenses"
+        }
+      ],
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "require(properties[_propertyId].isActive, \"Property not active\");",
+        "require(_annualIncome >= _annualExpenses, \"Expenses exceed income\");",
+        "properties[_propertyId].annualIncome = _annualIncome;",
+        "properties[_propertyId].annualExpenses = _annualExpenses;",
+        "properties[_propertyId].netIncome = _annualIncome - _annualExpenses;",
+        "emit PropertyIncomeUpdated(_propertyId, _annualIncome, _annualExpenses, properties[_propertyId].netIncome);"
+      ]
+    },
+    {
+      "name": "distributeAnnualIncome",
+      "visibility": "public",
+      "description": "Distribute annual income to token holders",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID for distribution"
+        }
+      ],
+      "modifiers": ["onlyOwner", "nonReentrant"],
+      "body": [
+        "require(properties[_propertyId].isActive, \"Property not active\");",
+        "require(properties[_propertyId].netIncome > 0, \"No net income\");",
+        "require(properties[_propertyId].tokensIssued > 0, \"No tokens issued\");",
+        "uint256 totalDistributed = (properties[_propertyId].netIncome * annualDistributionRate) / 100;",
+        "uint256 reserveAllocation = (properties[_propertyId].netIncome * reserveFundRate) / 100;",
+        "uint256 perTokenAmount = totalDistributed / properties[_propertyId].tokensIssued;",
+        "reserveFundBalance += reserveAllocation;",
+        "lastDistributionDate = block.timestamp;",
+        "uint256 distributionId = distributions.length;",
+        "distributions.push(DistributionRecord({",
+        "    distributionId: distributionId,",
+        "    propertyId: _propertyId,",
+        "    distributionDate: block.timestamp,",
+        "    totalDistributed: totalDistributed,",
+        "    perTokenAmount: perTokenAmount,",
+        "    reserveAllocation: reserveAllocation",
+        "}));",
+        "emit AnnualDistribution(_propertyId, block.timestamp, totalDistributed, perTokenAmount, reserveAllocation);",
+        "emit ReserveFundUpdated(reserveFundBalance, reserveAllocation);"
+      ]
+    },
+    {
+      "name": "getTokenHolderShare",
+      "visibility": "public",
+      "description": "Get the percentage share of a token holder for a property",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID"
+        },
+        {
+          "name": "_holder",
+          "type": "address",
+          "description": "Token holder address"
+        }
+      ],
+      "returns": "uint256",
+      "modifiers": ["view"],
+      "body": [
+        "uint256 holderTokens = 0;",
+        "for (uint256 i = 1; i <= totalTokensIssued; i++) {",
+        "    if (_exists(i) && ownerOf(i) == _holder && tokens[i].propertyId == _propertyId) {",
+        "        holderTokens++;",
+        "    }",
+        "}",
+        "return (holderTokens * 100) / properties[_propertyId].tokensIssued;"
+      ]
+    },
+    {
+      "name": "checkVisitationRights",
+      "visibility": "public",
+      "description": "Check if holder has visitation rights (30%+ ownership)",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID"
+        },
+        {
+          "name": "_holder",
+          "type": "address",
+          "description": "Token holder address"
+        }
+      ],
+      "returns": "bool",
+      "modifiers": ["view"],
+      "body": [
+        "uint256 share = getTokenHolderShare(_propertyId, _holder);",
+        "return share >= visitationThreshold;"
+      ]
+    },
+    {
+      "name": "getPropertyInfo",
+      "visibility": "public",
+      "description": "Get comprehensive property information",
+      "params": [
+        {
+          "name": "_propertyId",
+          "type": "uint256",
+          "description": "Property ID"
+        }
+      ],
+      "returns": "PropertyInfo",
+      "modifiers": ["view"],
+      "body": [
+        "return properties[_propertyId];"
+      ]
+    },
+    {
+      "name": "getTokenInfo",
+      "visibility": "public",
+      "description": "Get token information",
+      "params": [
+        {
+          "name": "_tokenId",
+          "type": "uint256",
+          "description": "Token ID"
+        }
+      ],
+      "returns": "TokenInfo",
+      "modifiers": ["view"],
+      "body": [
+        "require(_exists(_tokenId), \"Token does not exist\");",
+        "return tokens[_tokenId];"
+      ]
+    },
+    {
+      "name": "appointTrustProtector",
+      "visibility": "public",
+      "description": "Appoint new trust protector",
+      "params": [
+        {
+          "name": "_newProtector",
+          "type": "address",
+          "description": "New trust protector address"
+        }
+      ],
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "require(_newProtector != address(0), \"Invalid protector address\");",
+        "address previousProtector = trustProtector;",
+        "trustProtector = _newProtector;",
+        "emit TrustProtectorAppointed(_newProtector, previousProtector);"
+      ]
+    },
+    {
+      "name": "successorTrustee",
+      "visibility": "public",
+      "description": "Appoint successor trustee",
+      "params": [
+        {
+          "name": "_newTrustee",
+          "type": "address",
+          "description": "New trustee address"
+        }
+      ],
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "require(_newTrustee != address(0), \"Invalid trustee address\");",
+        "address previousTrustee = trustee;",
+        "trustee = _newTrustee;",
+        "emit TrusteeSuccession(_newTrustee, previousTrustee);"
+      ]
+    },
+    {
+      "name": "pauseTrust",
+      "visibility": "public",
+      "description": "Pause trust operations",
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "isTrustActive = false;",
+        "_pause();"
+      ]
+    },
+    {
+      "name": "unpauseTrust",
+      "visibility": "public",
+      "description": "Resume trust operations",
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "isTrustActive = true;",
+        "_unpause();"
+      ]
+    },
+    {
+      "name": "getTrustInfo",
+      "visibility": "public",
+      "description": "Get comprehensive trust information",
+      "returns": "string, address, address, address, address, uint256, uint256, uint256, bool",
+      "modifiers": ["view"],
+      "body": [
+        "return (",
+        "    trustName,",
+        "    settlor,",
+        "    trustee,",
+        "    trustProtector,",
+        "    qualifiedCustodian,",
+        "    propertyCount,",
+        "    totalTokensIssued,",
+        "    reserveFundBalance,",
+        "    isTrustActive",
+        ");"
+      ]
+    }
+  ],
+  "receive": {
+    "description": "Allow contract to receive ETH for distributions and reserve fund",
+    "payable": true,
+    "body": [
+      "// Contract can receive ETH for distributions"
+    ]
+  }
+}
