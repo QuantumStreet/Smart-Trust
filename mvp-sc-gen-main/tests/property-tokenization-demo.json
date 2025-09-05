@@ -1,0 +1,338 @@
+{
+  "license": "MIT",
+  "pragmaVersion": "^0.8.0",
+  "contractType": "Contract",
+  "name": "PropertyToken",
+  "description": "Real Estate Property Tokenization Contract for Fractional Ownership",
+  "imports": [
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+    "@openzeppelin/contracts/access/Ownable.sol",
+    "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+    "@openzeppelin/contracts/utils/math/SafeMath.sol"
+  ],
+  "inherits": ["ERC20", "Ownable", "ReentrancyGuard"],
+  "state": [
+    {
+      "name": "propertyAddress",
+      "type": "string",
+      "visibility": "public",
+      "description": "Physical address of the property"
+    },
+    {
+      "name": "propertyValue",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Total property value in USD"
+    },
+    {
+      "name": "totalTokens",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Total number of tokens representing the property"
+    },
+    {
+      "name": "tokenPrice",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Price per token in USD"
+    },
+    {
+      "name": "propertyDocumentHash",
+      "type": "bytes32",
+      "visibility": "public",
+      "description": "IPFS hash of property documents"
+    },
+    {
+      "name": "isActive",
+      "type": "bool",
+      "visibility": "public",
+      "description": "Whether the property tokenization is active"
+    },
+    {
+      "name": "rentalIncome",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Monthly rental income in USD"
+    },
+    {
+      "name": "lastRentalPayment",
+      "type": "uint256",
+      "visibility": "public",
+      "description": "Timestamp of last rental payment"
+    }
+  ],
+  "events": [
+    {
+      "name": "PropertyTokenized",
+      "params": [
+        {
+          "name": "propertyAddress",
+          "type": "string",
+          "indexed": true
+        },
+        {
+          "name": "propertyValue",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "totalTokens",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when property is tokenized"
+    },
+    {
+      "name": "TokensPurchased",
+      "params": [
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "totalCost",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when tokens are purchased"
+    },
+    {
+      "name": "RentalIncomeDistributed",
+      "params": [
+        {
+          "name": "totalIncome",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "indexed": false
+        }
+      ],
+      "description": "Emitted when rental income is distributed"
+    },
+    {
+      "name": "PropertySold",
+      "params": [
+        {
+          "name": "salePrice",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "description": "Emitted when property is sold"
+    }
+  ],
+  "constructor": {
+    "description": "Initialize the property tokenization contract",
+    "params": [
+      {
+        "name": "_propertyAddress",
+        "type": "string"
+      },
+      {
+        "name": "_propertyValue",
+        "type": "uint256"
+      },
+      {
+        "name": "_totalTokens",
+        "type": "uint256"
+      },
+      {
+        "name": "_propertyDocumentHash",
+        "type": "bytes32"
+      },
+      {
+        "name": "_rentalIncome",
+        "type": "uint256"
+      }
+    ],
+    "body": [
+      "ERC20(\"Property Token\", \"PROP\")",
+      "propertyAddress = _propertyAddress;",
+      "propertyValue = _propertyValue;",
+      "totalTokens = _totalTokens;",
+      "tokenPrice = _propertyValue / _totalTokens;",
+      "propertyDocumentHash = _propertyDocumentHash;",
+      "rentalIncome = _rentalIncome;",
+      "isActive = true;",
+      "_mint(msg.sender, _totalTokens);",
+      "emit PropertyTokenized(_propertyAddress, _propertyValue, _totalTokens);"
+    ]
+  },
+  "functions": [
+    {
+      "name": "purchaseTokens",
+      "visibility": "public",
+      "description": "Allow users to purchase property tokens",
+      "params": [
+        {
+          "name": "amount",
+          "type": "uint256",
+          "description": "Number of tokens to purchase"
+        }
+      ],
+      "modifiers": ["nonReentrant"],
+      "body": [
+        "require(isActive, \"Property tokenization is not active\");",
+        "require(amount > 0, \"Amount must be greater than 0\");",
+        "require(balanceOf(msg.sender) + amount <= totalSupply(), \"Not enough tokens available\");",
+        "uint256 totalCost = amount * tokenPrice;",
+        "require(msg.value >= totalCost, \"Insufficient payment\");",
+        "_transfer(owner(), msg.sender, amount);",
+        "if (msg.value > totalCost) {",
+        "    payable(msg.sender).transfer(msg.value - totalCost);",
+        "}",
+        "emit TokensPurchased(msg.sender, amount, totalCost);"
+      ]
+    },
+    {
+      "name": "distributeRentalIncome",
+      "visibility": "public",
+      "description": "Distribute rental income to token holders proportionally",
+      "modifiers": ["onlyOwner", "nonReentrant"],
+      "body": [
+        "require(isActive, \"Property tokenization is not active\");",
+        "require(address(this).balance >= rentalIncome, \"Insufficient rental income\");",
+        "uint256 totalSupply = totalSupply();",
+        "for (uint256 i = 0; i < totalSupply; i++) {",
+        "    address holder = _getHolderAtIndex(i);",
+        "    uint256 balance = balanceOf(holder);",
+        "    uint256 share = (balance * rentalIncome) / totalSupply;",
+        "    if (share > 0) {",
+        "        payable(holder).transfer(share);",
+        "    }",
+        "}",
+        "lastRentalPayment = block.timestamp;",
+        "emit RentalIncomeDistributed(rentalIncome, block.timestamp);"
+      ]
+    },
+    {
+      "name": "sellProperty",
+      "visibility": "public",
+      "description": "Sell the entire property and distribute proceeds to token holders",
+      "params": [
+        {
+          "name": "salePrice",
+          "type": "uint256",
+          "description": "Sale price of the property"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "description": "Address of the property buyer"
+        }
+      ],
+      "modifiers": ["onlyOwner", "nonReentrant"],
+      "body": [
+        "require(isActive, \"Property tokenization is not active\");",
+        "require(salePrice > 0, \"Sale price must be greater than 0\");",
+        "require(msg.value >= salePrice, \"Insufficient payment\");",
+        "uint256 totalSupply = totalSupply();",
+        "for (uint256 i = 0; i < totalSupply; i++) {",
+        "    address holder = _getHolderAtIndex(i);",
+        "    uint256 balance = balanceOf(holder);",
+        "    uint256 share = (balance * salePrice) / totalSupply;",
+        "    if (share > 0) {",
+        "        payable(holder).transfer(share);",
+        "    }",
+        "}",
+        "isActive = false;",
+        "emit PropertySold(salePrice, buyer);"
+      ]
+    },
+    {
+      "name": "getPropertyInfo",
+      "visibility": "public",
+      "description": "Get comprehensive property information",
+      "returns": "string, uint256, uint256, uint256, bytes32, bool, uint256, uint256",
+      "modifiers": ["view"],
+      "body": [
+        "return (",
+        "    propertyAddress,",
+        "    propertyValue,",
+        "    totalTokens,",
+        "    tokenPrice,",
+        "    propertyDocumentHash,",
+        "    isActive,",
+        "    rentalIncome,",
+        "    lastRentalPayment",
+        ");"
+      ]
+    },
+    {
+      "name": "getTokenHolderShare",
+      "visibility": "public",
+      "description": "Get the percentage share of a token holder",
+      "params": [
+        {
+          "name": "holder",
+          "type": "address",
+          "description": "Address of the token holder"
+        }
+      ],
+      "returns": "uint256",
+      "modifiers": ["view"],
+      "body": [
+        "uint256 balance = balanceOf(holder);",
+        "return (balance * 100) / totalSupply();"
+      ]
+    },
+    {
+      "name": "updateRentalIncome",
+      "visibility": "public",
+      "description": "Update the monthly rental income amount",
+      "params": [
+        {
+          "name": "newRentalIncome",
+          "type": "uint256",
+          "description": "New monthly rental income amount"
+        }
+      ],
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "require(newRentalIncome > 0, \"Rental income must be greater than 0\");",
+        "rentalIncome = newRentalIncome;"
+      ]
+    },
+    {
+      "name": "pauseTokenization",
+      "visibility": "public",
+      "description": "Pause the property tokenization",
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "isActive = false;"
+      ]
+    },
+    {
+      "name": "resumeTokenization",
+      "visibility": "public",
+      "description": "Resume the property tokenization",
+      "modifiers": ["onlyOwner"],
+      "body": [
+        "isActive = true;"
+      ]
+    }
+  ],
+  "receive": {
+    "description": "Allow contract to receive ETH for rental income and property sales",
+    "payable": true,
+    "body": [
+      "// Contract can receive ETH"
+    ]
+  }
+}
